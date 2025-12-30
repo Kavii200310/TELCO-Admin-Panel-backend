@@ -9,6 +9,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
+console.log({
+  inventory: inventoryController.getNumbers,
+  dashboard: dashboardController.getDashboard,
+  orders: orderController.getOrders,
+});
+
 // Inventory
 app.get("/admin/numbers", inventoryController.getNumbers);
 app.post("/admin/numbers", inventoryController.createNumber);
