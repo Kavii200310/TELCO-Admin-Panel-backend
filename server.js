@@ -6,7 +6,10 @@ const dashboardController = require("./src/controllers/dashboardController");
 const orderController = require("./src/controllers/orderController");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173"
+}));
+
 app.use(express.json());
 
 
