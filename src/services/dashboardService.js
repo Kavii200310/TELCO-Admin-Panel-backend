@@ -1,40 +1,75 @@
 const db = require("../db/db.js");
 
 exports.getDashboardStats = async () => {
-  const revenue = await db.query(
-    "SELECT COALESCE(SUM(amount),0) AS total FROM payments WHERE status='Completed'"
-  );
+  try {
+    console.log('📊 Fetching dashboard statistics...');
 
-  const activeEsims = await db.query(
-    "SELECT COUNT(*) FROM esim_activations WHERE status='Activated'"
-  );
+    /* ---------- TOTAL REVENUE ---------- */
+    const revenueResult = await db.query(`
+      SELECT COALESCE(SUM(amount), 0) AS total
+      FROM payments
+      WHERE status = 'success'
+    `);
+    const totalRevenue = revenueResult.rows[0].total;
+    console.log('💰 Total Revenue:', totalRevenue);
 
-  const stock = await db.query(
-    "SELECT COUNT(*) FROM numbers WHERE status='Available'"
-  );
+    /* ---------- ACTIVE ESIMS (Success orders) ---------- */
+    const activeEsimsResult = await db.query(`
+      SELECT COUNT(*) AS count
+      FROM payments
+      WHERE status = 'success'
+    `);
+    const activeEsims = activeEsimsResult.rows[0].count;
+    console.log('📱 Active eSIMs:', activeEsims);
 
-  const pendingOrders = await db.query(
-    "SELECT COUNT(*) FROM payments WHERE status='Pending'"
-  );
+    /* ---------- STOCK AVAILABLE ---------- */
+    const stockResult = await db.query(`
+      SELECT COUNT(*) AS count
+      FROM numbers
+      WHERE status = 'available'
+    `);
+    const stockAvailable = stockResult.rows[0].count;
+    console.log('📦 Stock Available:', stockAvailable);
 
- const recentTransactions = await db.query(`
-  SELECT
-    id,
-    phone_number AS phone,
-    amount,
-    status,
-    TO_CHAR(created_at, 'YYYY-MM-DD') AS date
-  FROM payments
-  ORDER BY created_at DESC
-  LIMIT 5
-`);
+    /* ---------- PENDING ORDERS ---------- */
+    const pendingOrdersResult = await db.query(`
+      SELECT COUNT(*) AS count
+      FROM payments
+      WHERE status = 'pending'
+    `);
+    const pendingOrders = pendingOrdersResult.rows[0].count;
+    console.log('⏳ Pending Orders:', pendingOrders);
 
+    /* ---------- RECENT TRANSACTIONS (Last 5) ---------- */
+    const transactionsResult = await db.query(`
+      SELECT 
+        id,
+        order_id,
+        phone_number,
+        amount,
+        status,
+        TO_CHAR(created_at, 'YYYY-MM-DD') AS date,
+        created_at
+      FROM payments
+      ORDER BY created_at DESC
+      LIMIT 5
+    `);
+    const recentTransactions = transactionsResult.rows;
+    console.log('📋 Recent Transactions:', recentTransactions.length);
 
-  return {
-    totalRevenue: revenue.rows[0].total,
-    activeEsims: activeEsims.rows[0].count,
-    stockAvailable: stock.rows[0].count,
-    pendingOrders: pendingOrders.rows[0].count,
-    recentTransactions: recentTransactions.rows,
-  };
+    const dashboardData = {
+      totalRevenue,
+      activeEsims,
+      stockAvailable,
+      pendingOrders,
+      recentTransactions,
+    };
+
+    console.log('✅ Dashboard data prepared successfully');
+    return dashboardData;
+
+  } catch (err) {
+    console.error('❌ Dashboard service error:', err);
+    throw err;
+  }
 };
